@@ -21,7 +21,7 @@ public class Rating {
     private Long guestId;
     private Boolean hostRating;
     private Long subjectId;
-    private Byte value;
+    private Byte ratingValue;
     private LocalDateTime createdAt;
     private String description;
     private Boolean active;

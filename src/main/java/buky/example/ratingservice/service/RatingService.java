@@ -75,14 +75,14 @@ public class RatingService {
 
     public RatingsDto getAllHostRatings(Long hostId) {
         List<Rating> ratings = ratingRepository.findAllHostRatings(hostId);
-        Double averageRating = ratings.stream().mapToInt(Rating::getValue).average().orElse(0.0);
+        Double averageRating = ratings.stream().mapToInt(Rating::getRatingValue).average().orElse(0.0);
 
         return new RatingsDto(ratings, averageRating);
     }
 
     public RatingsDto getAllAccommodationRatings(Long accommodationId) {
         List<Rating> ratings = ratingRepository.findAllAccommodationRatings(accommodationId);
-        Double averageRating = ratings.stream().mapToInt(Rating::getValue).average().orElse(0.0);
+        Double averageRating = ratings.stream().mapToInt(Rating::getRatingValue).average().orElse(0.0);
 
         return new RatingsDto(ratings, averageRating);
     }
