@@ -1,8 +1,13 @@
 package buky.example.ratingservice.service;
 
+import buky.example.ratingservice.clients.AccommodationClient;
+import buky.example.ratingservice.clients.ReservationClient;
 import buky.example.ratingservice.dto.RatingsDto;
 import buky.example.ratingservice.exceptions.NotFoundException;
 import buky.example.ratingservice.exceptions.RatingNotPossibleException;
+import buky.example.ratingservice.messaging.KafkaProducer;
+import buky.example.ratingservice.messaging.messages.AccommodationRatingMessage;
+import buky.example.ratingservice.messaging.messages.HostRatingMessage;
 import buky.example.ratingservice.model.Rating;
 import buky.example.ratingservice.repository.RatingRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +21,9 @@ import java.util.List;
 public class RatingService {
 
     private final RatingRepository ratingRepository;
+    private final KafkaProducer kafkaProducer;
+    private final AccommodationClient accommodationClient;
+    private final ReservationClient reservationClient;
 
     public Rating getById(Long id) {
 
@@ -37,22 +45,35 @@ public class RatingService {
         newRating.setCreatedAt(LocalDateTime.now());
         newRating.setActive(true);
 
-        return ratingRepository.save(newRating);
+        Rating rating = ratingRepository.save(newRating);
+
+        if(rating.getHostRating()) {
+            kafkaProducer.send("host-rating", new HostRatingMessage(userId,
+                    rating.getSubjectId(), rating.getId(), rating.getRatingValue(),(byte)0));
+        } else {
+            Long hostId = accommodationClient.getAccommodationHostById(newRating.getSubjectId());
+            if(hostId != null){
+                kafkaProducer.send("accommodation-rating", new AccommodationRatingMessage(userId, hostId,
+                        rating.getSubjectId(), rating.getId(), rating.getRatingValue()));
+            }
+        }
+
+        return rating;
     }
 
     private boolean userHasPreviousReservations(Long userId, Long subjectId) {
-        //TODO Kafka za provjeru rezervacija
-        return true;
+        return reservationClient.userHasPreviousReservations(userId, subjectId);
     }
 
     private boolean userStayedIn(Long userId, Long subjectId) {
-        //TODO Kafka za provjeru rezervacija
-        return true;
+        return reservationClient.userStayed(userId, subjectId);
     }
 
     public Rating updateRating(Rating updatedRating, Long userId, Long ratingId) {
         Rating rating = ratingRepository.findById(ratingId)
                 .orElseThrow(() -> new NotFoundException("Rating is not found!"));
+
+        byte oldRatingValue = rating.getRatingValue();
 
         if(!rating.getActive() || !rating.getGuestId().equals(userId))
             throw new NotFoundException("Rating is not found!");
@@ -60,7 +81,19 @@ public class RatingService {
         updatedRating.setCreatedAt(LocalDateTime.now());
         updatedRating.setActive(true);
 
-        return ratingRepository.save(updatedRating);
+        ratingRepository.save(updatedRating);
+
+        if(updatedRating.getHostRating()) {
+            kafkaProducer.send("host-rating", new HostRatingMessage(userId,
+                    rating.getSubjectId(), rating.getId(), updatedRating.getRatingValue(), oldRatingValue));
+        } else {
+            Long hostId = accommodationClient.getAccommodationHostById(updatedRating.getSubjectId());
+            if(hostId != null){
+                kafkaProducer.send("accommodation-rating", new AccommodationRatingMessage(userId, hostId,
+                        rating.getSubjectId(), rating.getId(), rating.getRatingValue()));
+            }
+        }
+        return updatedRating;
     }
 
     public void deleteRating(Long userId, Long id) {
