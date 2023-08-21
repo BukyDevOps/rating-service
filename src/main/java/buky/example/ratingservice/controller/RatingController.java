@@ -19,6 +19,18 @@ public class RatingController {
         return ratingService.getById(id);
     }
 
+    @GetMapping("/host")
+    @HasRole("GUEST")
+    public Rating getRatingByHostId(@RequestParam Long hostId, Long userId){
+        return ratingService.getRatingForHost(hostId, userId);
+    }
+
+    @GetMapping("/accommodation")
+    @HasRole("GUEST")
+    public Rating getRatingByAccommodationId(@RequestParam Long accommodationId, Long userId){
+        return ratingService.getRatingForAccommodation(accommodationId, userId);
+    }
+
     @PostMapping
     @HasRole("GUEST")
     public Rating addRating(@RequestBody Rating newRating, Long userId) {
