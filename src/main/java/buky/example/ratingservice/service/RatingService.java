@@ -119,4 +119,12 @@ public class RatingService {
 
         return new RatingsDto(ratings, averageRating);
     }
+
+    public Rating getRatingForHost(Long hostId, Long userId) {
+        return ratingRepository.findRatingByHostRatingTrueAndGuestIdAndSubjectId(userId, hostId).orElse(null);
+    }
+
+    public Rating getRatingForAccommodation(Long accommodationId, Long userId) {
+        return ratingRepository.findRatingByHostRatingFalseAndGuestIdAndSubjectId(userId, accommodationId).orElse(null);
+    }
 }
