@@ -1,0 +1,20 @@
+type Query {
+    getAllHostRatings(id: ID!): [Rating]
+    getAllAccommodationRatings(id: ID!): [Rating]
+}
+
+type Rating {
+    id: ID!
+    guest: User
+    ratingValue: Float!
+    createdAt: String
+    description: String
+}
+
+type User {
+    id: ID!
+    username: String
+    name: String
+    surname: String
+    rating: Float
+}
